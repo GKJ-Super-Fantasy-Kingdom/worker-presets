@@ -40,7 +40,7 @@ namespace WorkerPresets
 
     internal sealed class Workplace
     {
-        public string Key, Title;
+        public string Key, Title, BuildingName;
         public int Current, Min, Max, JobCapacity, CrewSize = 1;
         public bool Carrier, Specialist, Individual;
 
@@ -57,6 +57,28 @@ namespace WorkerPresets
         internal Entry Saved;
         internal Workplace Building;
         internal int Target;
+        internal string Plot
+        {
+            get
+            {
+                int split = Saved.Key.LastIndexOf('@');
+                return split < 0 ? "" : Saved.Key.Substring(split + 1).Replace(",", ", ");
+            }
+        }
+
+        // Old checkpoints retain the plot suffix in Title. The stable key carries the
+        // exact position even when a localized title rounds it differently.
+        internal string BuildingName
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(Building?.BuildingName)) return Building.BuildingName;
+                var title = Saved.Title;
+                int suffix = title.LastIndexOf(" (", StringComparison.Ordinal);
+                return suffix > 0 && title.EndsWith(")") ? title.Substring(0, suffix) : title;
+            }
+        }
+
         internal bool Changes => Building != null && Building.Current != Target;
     }
 

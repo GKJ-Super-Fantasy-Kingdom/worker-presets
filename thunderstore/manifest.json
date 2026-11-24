@@ -1,6 +1,6 @@
 {
   "name": "WorkerPresets",
-  "version_number": "0.1.1",
+  "version_number": "0.1.2",
   "website_url": "https://github.com/GKJ-Super-Fantasy-Kingdom/worker-presets",
   "description": "Save two named staffing layouts per run. Preview building changes and workforce shortfalls before applying.",
   "dependencies": [

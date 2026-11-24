@@ -26,8 +26,8 @@ internal class Probe
         var harmony = new Harmony("gkj.sfk.workerpresets.offline");
         harmony.PatchAll(plugin);
         var patched = harmony.GetPatchedMethods().ToArray();
-        Verify(patched.Length == 9 && patched.Any(m => m.DeclaringType == typeof(UIBuildingOverlayElementWorker)),
-            "all nine production Harmony targets installed in the game's Mono runtime");
+        Verify(patched.Length == 10 && patched.Any(m => m.DeclaringType == typeof(UIBuildingOverlayElementWorker)),
+            "all ten production Harmony targets installed in the game's Mono runtime");
         var pause = new HarmonyMethod(typeof(Probe), "Skip");
         harmony.Patch(AccessTools.Method(typeof(UIBuildingOverlayElementWorker), "SetWorkerAmount"),
             prefix: new HarmonyMethod(typeof(Probe), "Paint"));

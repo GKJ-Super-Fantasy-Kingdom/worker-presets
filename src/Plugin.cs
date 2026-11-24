@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace WorkerPresets
 {
-    [BepInPlugin("gkj.sfk.workerpresets", "Worker Presets", "0.1.1")]
+    [BepInPlugin("gkj.sfk.workerpresets", "Worker Presets", "0.1.2")]
     public sealed class Plugin : BaseUnityPlugin
     {
         private Harmony patches;
@@ -34,6 +34,19 @@ namespace WorkerPresets
         }
 
         private static void Removed(BuildingCity building, bool cancelJobs) => Book?.Remove(CityStaffing.Key(building));
+
+        [HarmonyPatch(typeof(GameInputManager), nameof(GameInputManager.CloseOverlay))]
+        private static class BackInput
+        {
+            private static bool Prefix(UnityEngine.InputSystem.InputAction.CallbackContext context)
+            {
+                if (!context.performed || PauseMenuManger.Instance.InMenu()) return true;
+                var overlays = OverlayManager.Instance;
+                if (!overlays.IsOpen() || !overlays.CanCloseOverlay()) return true;
+                var panel = overlays.GetOverlaySelection().GetComponentInChildren<PresetPanel>();
+                return panel == null || !panel.Back();
+            }
+        }
 
         [HarmonyPatch(typeof(UIBuildingOverlayElementWorker), nameof(UIBuildingOverlayElementWorker.Draw), typeof(Building))]
         private static class AssignmentPanel

@@ -60,7 +60,7 @@ namespace WorkerPresets
                     sources.Add(group.Key, b);
                     var point = b.transform.position;
                     Sites.Add(group.Key, new Workplace {
-                        Key = group.Key, Title = $"{b.GetTitle()} ({point.x:0.##}, {point.y:0.##})",
+                        Key = group.Key, BuildingName = b.GetTitle(), Title = $"{b.GetTitle()} ({point.x:0.##}, {point.y:0.##})",
                         Current = Current(b), Max = max,
                         Min = !specialist && b.AssignJobsIndividually() ? Math.Min(max, b.GetCurrentlyWorking()) : 0,
                         Carrier = b.CanCarrierWork(), Individual = !specialist && b.AssignJobsIndividually(),

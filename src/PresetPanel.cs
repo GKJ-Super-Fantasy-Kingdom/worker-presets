@@ -21,12 +21,18 @@ namespace WorkerPresets
         private int index;
         private Layout Slot => book.Slots[index];
         private TextMeshProUGUI hints;
+        private Action backAction;
         private static readonly string[] Names = { "Day Shift", "Night Shift", "Harvest", "Construction", "Supplies", "Recovery" };
 
         internal static int PreviewRows(float logicalHeight) =>
             logicalHeight < 420 ? 1 : logicalHeight < 580 ? 2 : MaxPreviewRows;
 
-        internal static float PanelWidth(float logicalWidth) => Math.Max(1, Math.Min(420, logicalWidth - 64));
+        internal static float PanelWidth(float logicalWidth)
+        {
+            // Leave space for the calendar dock beside the shared selection ribbon.
+            float preferred = Math.Max(448, Math.Min(520, logicalWidth * .35f));
+            return Math.Max(1, Math.Min(preferred, logicalWidth - 48));
+        }
 
         private float Scale => GetComponentInParent<Canvas>().rootCanvas.scaleFactor;
 
@@ -97,11 +103,12 @@ namespace WorkerPresets
         // The game activates its selection canvas after the opening transition.
         private void Start() => Slots();
 
-        private void Clear(string header)
+        private void Clear(string header, Action back)
         {
             GetComponentInParent<UIOverlayVariable>().SetHeaderText(header);
             var size = GetComponent<LayoutElement>() ?? gameObject.AddComponent<LayoutElement>();
             size.minWidth = size.preferredWidth = PanelWidth(Screen.width / Scale);
+            backAction = back;
             hints = null;
             foreach (Transform item in transform)
             {
@@ -112,10 +119,13 @@ namespace WorkerPresets
 
         private TextMeshProUGUI Text(string value)
         {
-            var item = Instantiate(Resources.Load<GameObject>("UI/OverlayElementText"), transform);
-            var label = item.GetComponentInChildren<TextMeshProUGUI>(true);
+            var template = Resources.Load<GameObject>("UI/OverlayElementText").GetComponentInChildren<TextMeshProUGUI>(true);
+            var label = Instantiate(template, transform, false);
+            label.transform.localScale = Vector3.one;
+            label.margin = new Vector4(4, 0, 4, 0);
             label.text = value;
-            label.fontSize = 27;
+            label.alignment = TextAlignmentOptions.Center;
+            label.fontSize = 28;
             label.enableAutoSizing = false;
             label.enableWordWrapping = true;
             label.raycastTarget = false;
@@ -162,41 +172,50 @@ namespace WorkerPresets
                     }
                 return caption;
             }
-            hints.text = Icon("UI/Submit", "Select") + "     " + Icon("UI/Cancel", "Close");
+            hints.text = Icon("UI/Submit", "Select") + "     " + Icon("UI/Cancel", "Back");
         }
 
         private void Slots(string message = null)
         {
-            Clear("Worker Presets");
+            Clear("Worker Presets", Jobs);
             if (message != null) Text(message);
             Button first = null;
             for (int i = 0; i < 2; i++)
             {
                 int slot = i;
                 var layout = book.Slots[slot];
-                var button = ActionButton(layout.Name + (layout.Entries == null ? " (Empty)" : ""), () =>
+                var button = ActionButton(layout.Name + (layout.Entries == null ? "  (Empty)" : "  |  " + Count(layout.Entries.Count, "building")), () =>
                 {
                     index = slot;
                     Manage();
                 });
-                if (first == null) first = button;
+                if (slot == index) first = button;
             }
-            ActionButton("Back to jobs", () =>
-            {
-                var view = source != null ? source.GetComponent<UIBuildingOverlay>() : null;
-                if (view == null) { OverlayManager.Instance.Cancel(); return; }
-                view.Open(true);
-                var launcher = OverlayManager.Instance.GetOverlaySelection().GetComponentsInChildren<Button>()
-                    .FirstOrDefault(b => b.name == "Worker Presets");
-                if (launcher != null)
-                    GamepadManager.Instance.SetGameObjectToSelect(launcher.gameObject, true);
-            });
+            ActionButton("Back to jobs", Jobs);
             Focus(first);
+        }
+
+        internal bool Back()
+        {
+            if (backAction == null || book != Plugin.Book || !isActiveAndEnabled) return false;
+            backAction();
+            return true;
+        }
+
+        private void Jobs()
+        {
+            var view = source != null ? source.GetComponent<UIBuildingOverlay>() : null;
+            if (view == null) { OverlayManager.Instance.Cancel(); return; }
+            view.Open(true);
+            var launcher = OverlayManager.Instance.GetOverlaySelection().GetComponentsInChildren<Button>()
+                .FirstOrDefault(b => b.name == "Worker Presets");
+            if (launcher != null)
+                GamepadManager.Instance.SetGameObjectToSelect(launcher.gameObject, true);
         }
 
         private void Manage(string message = null)
         {
-            Clear(Slot.Name);
+            Clear(Slot.Name, () => Slots());
             if (message != null) Text(message);
             Button first = null;
             if (Slot.Entries != null) first = ActionButton("Preview layout", () => ShowPreview(new CityStaffing().Plan(Slot), 0));
@@ -205,7 +224,7 @@ namespace WorkerPresets
                 if (Slot.Entries == null) Save();
                 else
                 {
-                    Clear(Slot.Name);
+                    Clear(Slot.Name, () => Manage());
                     Text("Replace this layout with the current staffing?");
                     var back = ActionButton("Keep saved layout", () => Manage());
                     ActionButton("Replace layout", Save);
@@ -227,7 +246,7 @@ namespace WorkerPresets
 
         private void Rename()
         {
-            Clear("Rename layout");
+            Clear("Rename layout", () => Manage());
             // Reuse the game's text field independently of its unit-rename callbacks.
             var template = OverlayManager.Instance.GetComponentInChildren<UIRename>(true)?.GetComponentInChildren<TMP_InputField>(true);
             TMP_InputField field = null;
@@ -271,18 +290,33 @@ namespace WorkerPresets
 
         private void ShowPreview(Preview plan, int page, string message = null, int pageDirection = 0)
         {
-            Clear(Slot.Name + " - Preview");
-            var changes = plan.Rows.Count(row => row.Changes);
+            Clear(Slot.Name + " - Preview", () => Manage());
+            int changes = plan.Rows.Count(row => row.Changes);
             int skipped = plan.Rows.Count(row => row.Building == null);
-            string summary = $"{changes} to change, {skipped} skipped";
-            if (plan.WorkersShort > 0) summary += $"\nShort {plan.WorkersShort} {(plan.WorkersShort == 1 ? "worker" : "workers")}";
-            if (plan.CarriersShort > 0) summary += $"\nShort {plan.CarriersShort} {(plan.CarriersShort == 1 ? "carrier" : "carriers")}";
-            Text(message == null ? summary : message + "\n" + summary);
+            if (message != null) Text(message);
+            string summary = changes == 0 ? "No assignments to change" : Count(changes, "building") + " will change";
+            if (skipped > 0) summary += "  |  " + skipped + " skipped";
+            Text(summary);
+            var shortages = new List<string>();
+            if (plan.WorkersShort > 0) shortages.Add(Count(plan.WorkersShort, "worker"));
+            if (plan.CarriersShort > 0) shortages.Add(Count(plan.CarriersShort, "carrier"));
+            if (shortages.Count > 0)
+                Text("<color=#FFE295><sprite name=IconWorking> Short " + string.Join(" and ", shortages) + "</color>");
             var rows = plan.Rows.OrderByDescending(row => row.Changes || row.Building == null).ToArray();
+            var duplicates = rows.GroupBy(r => r.BuildingName).Where(group => group.Count() > 1)
+                .Select(group => group.Key).ToHashSet();
             int pageSize = PreviewRows(Screen.height / Scale);
             int pages = Math.Max(1, (rows.Length + pageSize - 1) / pageSize);
-            page = Math.Min(page, pages - 1);
-            Text(string.Join("\n", rows.Skip(page * pageSize).Take(pageSize).Select(Describe)));
+            page = Math.Max(0, Math.Min(page, pages - 1));
+            TableRow("Building", "Now", "After", null, true);
+            foreach (var row in rows.Skip(page * pageSize).Take(pageSize))
+            {
+                string detail = duplicates.Contains(row.BuildingName) ? "Plot " + row.Plot : "";
+                if (row.Building == null) detail = JoinDetail(detail, "Skipped");
+                else if (row.Target != row.Saved.Amount) detail = JoinDetail(detail, "Limited");
+                TableRow(row.BuildingName, row.Building?.AmountText(row.Building.Current) ?? "-",
+                    row.Building?.AmountText(row.Target) ?? "-", detail, false, row.Changes);
+            }
             Button pageFocus = null;
             if (pages > 1)
             {
@@ -297,18 +331,46 @@ namespace WorkerPresets
                     pageFocus = next.interactable && (pageDirection > 0 || !previous.interactable) ? next : previous;
             }
             var back = ActionButton("Back", () => Manage());
-            if (changes > 0) ActionButton("Confirm apply", () => Confirm(plan));
+            if (changes > 0) ActionButton("Apply " + Count(changes, "change"), () => Confirm(plan));
             Focus(pageFocus ?? back);
         }
 
-        private static string Describe(Change row)
+        private static string Count(int n, string noun) => n + " " + noun + (n == 1 ? "" : "s");
+        private static string JoinDetail(string a, string b) => a.Length == 0 ? b : a + "  |  " + b;
+
+        private void TableRow(string title, string current, string target, string detail, bool header, bool changes = false)
         {
-            if (row.Building == null) return row.Saved.Title + " (skipped)";
-            var site = row.Building;
-            string amount = site.AmountText(row.Target);
-            if (row.Changes) amount = site.AmountText(site.Current) + " to " + amount;
-            if (row.Target != row.Saved.Amount) amount += " (limited)";
-            return site.Title + "   " + amount;
+            var row = new GameObject("Staffing row", typeof(RectTransform), typeof(LayoutElement), typeof(Image));
+            row.transform.SetParent(transform, false);
+            var size = row.GetComponent<LayoutElement>();
+            size.preferredHeight = size.minHeight = header ? 30 : string.IsNullOrEmpty(detail) ? 34 : 54;
+            var background = row.GetComponent<Image>();
+            background.raycastTarget = false;
+            background.color = header ? new Color32(62, 35, 68, 255) : new Color32(91, 54, 99, 255);
+            var template = Resources.Load<GameObject>("UI/OverlayElementText").GetComponentInChildren<TextMeshProUGUI>(true);
+            void Cell(string value, float left, float right, TextAlignmentOptions alignment, bool accent = false)
+            {
+                var label = Instantiate(template, row.transform, false);
+                label.transform.localScale = Vector3.one;
+                var rect = label.rectTransform;
+                rect.anchorMin = new Vector2(left, 0);
+                rect.anchorMax = new Vector2(right, 1);
+                rect.offsetMin = new Vector2(8, 0);
+                rect.offsetMax = new Vector2(-8, 0);
+                label.margin = Vector4.zero;
+                label.text = value;
+                label.alignment = alignment;
+                label.enableAutoSizing = true;
+                label.fontSizeMax = header ? 26 : 30;
+                label.fontSizeMin = 15;
+                label.enableWordWrapping = true;
+                label.color = header || accent ? new Color32(255, 226, 149, 255) : new Color32(255, 255, 255, 255);
+                label.raycastTarget = false;
+            }
+            if (!string.IsNullOrEmpty(detail)) title += "\n<size=84%><color=#E7D4E9>" + detail + "</color></size>";
+            Cell(title, 0, .62f, TextAlignmentOptions.MidlineLeft);
+            Cell(current, .62f, .81f, TextAlignmentOptions.Center);
+            Cell(target, .81f, 1, TextAlignmentOptions.Center, changes);
         }
 
         private void Confirm(Preview seen)

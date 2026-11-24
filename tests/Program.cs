@@ -46,6 +46,9 @@ internal static class Program
         Check(east.Current == 0 && west.Current == 4 && haul.Current == 0, "preview and leaving it perform no writes");
         Check(plan.Rows.Single(r => r.Saved.Key == lost.Key).Building == null &&
             book.Slots[1].Entries.Last().Removed, "demolition retires both saved entries even after rebuilding on the same plot");
+        var oldPlot = new Change { Saved = new Entry { Key = "BuildingWood@-5,-17", Title = "Lumberyard (-5, -17)" } };
+        Check(oldPlot.BuildingName == "Lumberyard" && oldPlot.Plot == "-5, -17",
+            "older and demolished plots retain their readable names and saved coordinates");
         var changedPlan = new Preview(layout, sites, 20, 20);
         Check(!plan.Matches(changedPlan), "a changed workforce warning requires fresh confirmation");
         west.Min = 2;
@@ -124,7 +127,7 @@ internal static class Program
     {
         if (args.Length != 1) throw new ArgumentException("Pass the path to a copied game checkpoint.");
         Check(PresetPanel.PreviewRows(720) == 3 && PresetPanel.PreviewRows(720 / 1.5f) == 2 &&
-            PresetPanel.PanelWidth(1280 / 1.5f) == 420 && PresetPanel.PanelWidth(400) == 336,
+            PresetPanel.PanelWidth(1920) == 520 && PresetPanel.PanelWidth(1920 / 1.5f) == 448 && PresetPanel.PanelWidth(400) == 352,
             "720p preview budgets at 1x and 1.5x scale and narrow panel width");
         SaveContinue(args[0], Scenarios());
     }
