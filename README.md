@@ -1,29 +1,41 @@
 # Worker Presets
 
-Save two named staffing layouts for the current kingdom run. Open **Presets** beside a job count, or **Worker Presets** below a longer job label, to save, rename, or preview a layout. The preview lists individual plots and separates worker and carrier shortfalls. Choose **Apply** with the displayed change count to make changes through the game's worker controls.
+Save two named staffing layouts for a kingdom run, then switch between them from a building’s job assignment panel. Preview each change before applying it through the game’s own worker controls.
 
-## Development
+## Features
 
-The current local test build is version 0.1.2. Build with the .NET SDK, Python 3, the installed game's managed assemblies, and a BepInEx 5 profile. The project defaults to the Steam installation on drive D and a Thunderstore profile named `Worker Presets Dev`. Pass `-p:GameDir="..."` and `-p:ProfileDir="..."` to override those locations.
+- Keep two layouts, initially **Day Shift** and **Night Shift**. Rename them to suit your kingdom.
+- Compare **Now** and **After** counts. Duplicate buildings show their plot coordinates, so two Lumberyards can have different targets.
+- See worker and carrier shortfalls before applying. Newly built workplaces keep their current staffing. Demolished buildings are skipped, even if you rebuild the same type on the same plot.
+- Carry both layouts forward with the kingdom’s next normal save and **Continue**.
 
-```powershell
-dotnet build WorkerPresets.csproj -c Release
-python package.py
-python tests/Native/run.py
-```
+## How to Use
 
-The ZIP is written to `dist/WorkerPresets-0.1.2.zip`. The native probe uses the packaged DLL and the game's Mono runtime in a separate process. It substitutes the label update, sound, and warning display. Unity engine callbacks can print unresolved-call diagnostics in that process.
+1. Open a building’s job assignment panel. Select **Presets** beside the job count, or **Worker Presets** below a longer job label.
+2. Choose a slot and select **Save current staffing**. Overwriting a saved layout asks for confirmation. **Rename** offers a controller-friendly name picker and a text field for custom names.
+3. Choose **Preview layout**. Check the plot, the **Now** and **After** columns, and any shortage. You can apply a layout with more jobs than available people. The game assigns the staff it has.
+4. Select **Apply** with the displayed change count to confirm. **Back** leaves staffing as it was and returns one screen at a time.
 
-Install the DLL from the ZIP into the dedicated profile at `BepInEx/plugins/GKJ-WorkerPresets/WorkerPresets.dll`. Run the checkpoint and staffing checks against a **copy** of a kingdom checkpoint.
+## Screenshots
 
-```powershell
-dotnet run -c Release --project tests/StaffingChecks.csproj -- ".analysis/save-copy/1_human_game.data"
-```
+At 1×, Day Shift would move one assignment between two Lumberyards. Their plot coordinates distinguish them.
 
-For live review, use a separate in-game save slot populated from the copy. The mod-manager profile selects plugins and shares the game's save directory. Verify preview, cancel, confirm, and Continue with duplicate buildings and too few workers. Check controller focus and prompts at 1× and 1.5× UI scale.
+![Day Shift preview at 1× showing two Lumberyards and their current and proposed staffing](https://raw.githubusercontent.com/GKJ-Super-Fantasy-Kingdom/worker-presets/main/docs/screenshots/0.1.2/preview-1x.png)
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and commit conventions.
+At 1.5× after Continue, the preview shows an 11-worker shortfall. Back has focus, and the resource counters and Visitor Calendar remain visible.
 
-## License
+![Day Shift preview at 1.5× with an eleven-worker shortfall and Back focused](https://raw.githubusercontent.com/GKJ-Super-Fantasy-Kingdom/worker-presets/main/docs/screenshots/0.1.2/preview-1.5x.png)
 
-Original mod code is licensed under the [MIT License](LICENSE). Super Fantasy Kingdom and its assets belong to their respective owners.
+## Compatibility
+
+Tested on Super Fantasy Kingdom **0.8.068** at 1920×1080 with a virtual gamepad at 1× and 1.5× UI scale.
+
+- [Production Bottlenecks](https://thunderstore.io/c/super-fantasy-kingdom/p/GKJ/ProductionBottlenecks/) can still focus the selected Lumberyard when two share the same name.
+- [Pin a Build Cost](https://thunderstore.io/c/super-fantasy-kingdom/p/GKJ/PinABuildCost/) shares the building panel. Its resource pin and the native assignment controls stay accessible.
+- The staffing preview leaves the [Daybook](https://thunderstore.io/c/super-fantasy-kingdom/p/GKJ/Daybook/) counters and [Visitor Calendar](https://thunderstore.io/c/super-fantasy-kingdom/p/GKJ/VisitorCalendar/) visible.
+
+## Installation
+
+Install **Worker Presets** from the Super Fantasy Kingdom community in your Thunderstore-compatible mod manager, then launch the game with that profile.
+
+For manual installation, install [BepInExPack](https://thunderstore.io/c/super-fantasy-kingdom/p/BepInEx/BepInExPack/) and [HideManagerGameObject Config](https://thunderstore.io/c/super-fantasy-kingdom/p/BepInEx/HideManagerGameObject_Config/). Copy `plugins/WorkerPresets.dll` from the ZIP to `BepInEx/plugins/GKJ-WorkerPresets/WorkerPresets.dll`.

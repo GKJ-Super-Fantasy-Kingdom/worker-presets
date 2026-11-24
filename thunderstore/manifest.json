@@ -2,7 +2,7 @@
   "name": "WorkerPresets",
   "version_number": "0.1.2",
   "website_url": "https://github.com/GKJ-Super-Fantasy-Kingdom/worker-presets",
-  "description": "Save two named staffing layouts per run. Preview building changes and workforce shortfalls before applying.",
+  "description": "Save two named staffing layouts per kingdom run. Compare staffing by building and plot, see worker and carrier shortfalls, and confirm before applying.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2305",
     "BepInEx-HideManagerGameObject_Config-5.4.2304"

@@ -4,6 +4,7 @@
 
 - Show current and proposed staffing in aligned columns, with plot coordinates for duplicate buildings and the number of changes on Apply.
 - Show saved building counts in the layout picker and mark workforce shortfalls with the native staffing icon.
+- Keep Visitor Calendar and the resource counters visible at 1.5× UI scale.
 - Return one screen at a time with controller Back, keeping the selected layout focused.
 
 ## 0.1.1
