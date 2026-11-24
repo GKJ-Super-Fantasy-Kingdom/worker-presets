@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <GameDir Condition="'$(GameDir)' == ''">D:\SteamLibrary\steamapps\common\Super Fantasy Kingdom</GameDir>
+    <ManagedDir>$(GameDir)\Super Fantasy Kingdom_Data\Managed</ManagedDir>
+    <ProfileDir Condition="'$(ProfileDir)' == ''">$(APPDATA)\Thunderstore Mod Manager\DataFolder\SuperFantasyKingdom\profiles\Worker Presets Dev</ProfileDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Native/**/*.cs" />
+    <Reference Include="WorkerPresets" HintPath="$(ProfileDir)\BepInEx\plugins\GKJ-WorkerPresets\WorkerPresets.dll" />
+    <Reference Include="Assembly-CSharp" HintPath="$(ManagedDir)\Assembly-CSharp.dll" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(ManagedDir)\Newtonsoft.Json.dll" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedDir)\UnityEngine.CoreModule.dll" />
+    <Reference Include="UnityEngine" HintPath="$(ManagedDir)\UnityEngine.dll" />
+    <Reference Include="BepInEx" HintPath="$(ProfileDir)\BepInEx\core\BepInEx.dll" />
+    <Reference Include="0Harmony" HintPath="$(ProfileDir)\BepInEx\core\0Harmony.dll" />
+  </ItemGroup>
+</Project>
