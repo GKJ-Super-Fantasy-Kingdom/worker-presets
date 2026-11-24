@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Updated the package icon with the in-game worker portrait, staffing hammer, and two assignment slots.
+
 ## 0.1.2
 
 - Show current and proposed staffing in aligned columns, with plot coordinates for duplicate buildings and the number of changes on Apply.

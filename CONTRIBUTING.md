@@ -29,7 +29,7 @@ python package.py
 python tests/Native/run.py
 ```
 
-The ZIP is written to `dist/WorkerPresets-0.1.2.zip`. The native probe uses the packaged DLL and the game's Mono runtime in a separate process. It substitutes the label update, sound, and warning display. Unity engine callbacks can print unresolved-call diagnostics in that process.
+The ZIP is written to `dist/WorkerPresets-0.1.3.zip`. The native probe uses the packaged DLL and the game's Mono runtime in a separate process. It substitutes the label update, sound, and warning display. Unity engine callbacks can print unresolved-call diagnostics in that process.
 
 Install the DLL from the ZIP into the dedicated profile at `BepInEx/plugins/GKJ-WorkerPresets/WorkerPresets.dll`. Run the checkpoint and staffing checks against a **copy** of a kingdom checkpoint.
 
