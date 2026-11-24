@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace WorkerPresets
 {
-    [BepInPlugin("gkj.sfk.workerpresets", "Worker Presets", "0.1.0")]
+    [BepInPlugin("gkj.sfk.workerpresets", "Worker Presets", "0.1.1")]
     public sealed class Plugin : BaseUnityPlugin
     {
         private Harmony patches;
@@ -38,11 +38,12 @@ namespace WorkerPresets
         [HarmonyPatch(typeof(UIBuildingOverlayElementWorker), nameof(UIBuildingOverlayElementWorker.Draw), typeof(Building))]
         private static class AssignmentPanel
         {
-            private static void Postfix(Building building, bool __runOriginal)
+            private static void Postfix(Building building, Transform ___m_OverlayElement, bool __runOriginal)
             {
                 if (!__runOriginal || Book == null || !(building is BuildingCity city)) return;
                 var panel = OverlayManager.Instance.GetOverlaySelection();
-                var button = PresetPanel.Button(panel, "Worker Presets", () => PresetPanel.Open(city));
+                var button = PresetPanel.AddLauncher(panel, (RectTransform)___m_OverlayElement, city);
+                AssignmentPanelFit.Bind(panel, button.transform);
                 GamepadManager.Instance.SetGameObjectToSelect(button.gameObject);
             }
         }

@@ -9,6 +9,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 namespace WorkerPresets
 {
@@ -36,6 +37,10 @@ namespace WorkerPresets
             button.name = title;
             var label = button.GetComponentInChildren<TextMeshProUGUI>(true);
             label.text = title;
+            label.rectTransform.anchorMin = Vector2.zero;
+            label.rectTransform.anchorMax = Vector2.one;
+            label.rectTransform.offsetMin = new Vector2(8, 1);
+            label.rectTransform.offsetMax = new Vector2(-8, -1);
             label.enableAutoSizing = true;
             label.fontSizeMin = 15;
             label.fontSizeMax = 28;
@@ -48,6 +53,26 @@ namespace WorkerPresets
             nav.mode = Navigation.Mode.Automatic;
             button.navigation = nav;
             button.gameObject.SetActive(true);
+            return button;
+        }
+
+        internal static Button AddLauncher(Transform panel, RectTransform workerRow, BuildingCity source)
+        {
+            var button = Button(panel, "Worker Presets", () => Open(source));
+            var jobs = workerRow.Find("Jobs")?.GetComponent<TextMeshProUGUI>();
+            // Reuse the space between a short job title and its +/- controls.
+            // Timed or unusually long translated titles keep their full native row.
+            const float amountWidth = 106, buttonWidth = 100;
+            if (jobs != null && jobs.preferredWidth + 32 <= workerRow.rect.width - amountWidth - buttonWidth)
+            {
+                var rect = (RectTransform)button.transform;
+                rect.SetParent(workerRow, false);
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, .5f);
+                rect.anchoredPosition = new Vector2(-amountWidth, 0);
+                rect.sizeDelta = new Vector2(buttonWidth, 38);
+                button.GetComponent<LayoutElement>().ignoreLayout = true;
+                button.GetComponentInChildren<TextMeshProUGUI>().text = "Presets";
+            }
             return button;
         }
 
@@ -67,8 +92,10 @@ namespace WorkerPresets
             var panel = root.AddComponent<PresetPanel>();
             panel.source = source;
             panel.book = Plugin.Book;
-            panel.Slots();
         }
+
+        // The game activates its selection canvas after the opening transition.
+        private void Start() => Slots();
 
         private void Clear(string header)
         {
@@ -88,7 +115,7 @@ namespace WorkerPresets
             var item = Instantiate(Resources.Load<GameObject>("UI/OverlayElementText"), transform);
             var label = item.GetComponentInChildren<TextMeshProUGUI>(true);
             label.text = value;
-            label.fontSize = 21;
+            label.fontSize = 27;
             label.enableAutoSizing = false;
             label.enableWordWrapping = true;
             label.raycastTarget = false;
@@ -120,7 +147,20 @@ namespace WorkerPresets
             {
                 string token = "$" + action + "$";
                 string icon = Helper.Instance.ReplaceStringWithInputIcon(token);
-                return icon == token ? caption : icon + " " + caption;
+                if (icon != token) return icon + " " + caption;
+                // UI/Submit uses the Input System's generic */{Submit} binding.
+                // Resolve its concrete control on the active device for the native sprite table.
+                var manager = GamepadManager.Instance;
+                var bound = manager.GetPlayerInput()?.actions.FindAction(action);
+                if (bound != null)
+                    foreach (var control in bound.controls)
+                    {
+                        string device = control.device is Gamepad ? "Gamepad" : control.device is Keyboard ? "Keyboard" : null;
+                        if (device == null || (device == "Gamepad") != manager.IsGamepadInUse()) continue;
+                        var sprite = manager.GetButtonPrompt("<" + device + ">/" + control.name);
+                        if (sprite != null) return "<sprite name=" + sprite.name + "> " + caption;
+                    }
+                return caption;
             }
             hints.text = Icon("UI/Submit", "Select") + "     " + Icon("UI/Cancel", "Close");
         }
@@ -134,7 +174,7 @@ namespace WorkerPresets
             {
                 int slot = i;
                 var layout = book.Slots[slot];
-                var button = ActionButton(layout.Name + (layout.Entries == null ? "  ·  Empty" : ""), () =>
+                var button = ActionButton(layout.Name + (layout.Entries == null ? " (Empty)" : ""), () =>
                 {
                     index = slot;
                     Manage();
@@ -143,8 +183,13 @@ namespace WorkerPresets
             }
             ActionButton("Back to jobs", () =>
             {
-                OverlayManager.Instance.Cancel();
-                if (source != null) source.GetComponent<UIBuildingOverlay>()?.Open(true);
+                var view = source != null ? source.GetComponent<UIBuildingOverlay>() : null;
+                if (view == null) { OverlayManager.Instance.Cancel(); return; }
+                view.Open(true);
+                var launcher = OverlayManager.Instance.GetOverlaySelection().GetComponentsInChildren<Button>()
+                    .FirstOrDefault(b => b.name == "Worker Presets");
+                if (launcher != null)
+                    GamepadManager.Instance.SetGameObjectToSelect(launcher.gameObject, true);
             });
             Focus(first);
         }
@@ -177,7 +222,7 @@ namespace WorkerPresets
             var entries = new CityStaffing().Capture();
             if (entries.Count == 0) { Manage("No staffing controls are available."); return; }
             Slot.Entries = entries;
-            Slots(Slot.Name + " saved · " + entries.Count + " buildings");
+            Slots(Slot.Name + " saved, " + entries.Count + " buildings");
         }
 
         private void Rename()
@@ -226,12 +271,12 @@ namespace WorkerPresets
 
         private void ShowPreview(Preview plan, int page, string message = null, int pageDirection = 0)
         {
-            Clear(Slot.Name + " · Preview");
+            Clear(Slot.Name + " - Preview");
             var changes = plan.Rows.Count(row => row.Changes);
             int skipped = plan.Rows.Count(row => row.Building == null);
-            string summary = $"{changes} to change · {skipped} skipped";
-            if (plan.WorkersShort > 0) summary += $"\nShort {plan.WorkersShort} worker(s)";
-            if (plan.CarriersShort > 0) summary += $"\nShort {plan.CarriersShort} carrier(s)";
+            string summary = $"{changes} to change, {skipped} skipped";
+            if (plan.WorkersShort > 0) summary += $"\nShort {plan.WorkersShort} {(plan.WorkersShort == 1 ? "worker" : "workers")}";
+            if (plan.CarriersShort > 0) summary += $"\nShort {plan.CarriersShort} {(plan.CarriersShort == 1 ? "carrier" : "carriers")}";
             Text(message == null ? summary : message + "\n" + summary);
             var rows = plan.Rows.OrderByDescending(row => row.Changes || row.Building == null).ToArray();
             int pageSize = PreviewRows(Screen.height / Scale);
@@ -258,10 +303,10 @@ namespace WorkerPresets
 
         private static string Describe(Change row)
         {
-            if (row.Building == null) return row.Saved.Title + " · skipped";
+            if (row.Building == null) return row.Saved.Title + " (skipped)";
             var site = row.Building;
             string amount = site.AmountText(row.Target);
-            if (row.Changes) amount = site.AmountText(site.Current) + " → " + amount;
+            if (row.Changes) amount = site.AmountText(site.Current) + " to " + amount;
             if (row.Target != row.Saved.Amount) amount += " (limited)";
             return site.Title + "   " + amount;
         }
@@ -285,7 +330,7 @@ namespace WorkerPresets
             var remaining = new CityStaffing().Plan(Slot);
             if (remaining.Rows.Any(r => r.Changes))
                 ShowPreview(remaining, 0, "Some assignments are still limited.");
-            else Manage("Layout applied · " + current.Rows.Count(r => r.Changes) + " changed");
+            else Manage("Layout applied, " + current.Rows.Count(r => r.Changes) + " changed");
         }
     }
 }
