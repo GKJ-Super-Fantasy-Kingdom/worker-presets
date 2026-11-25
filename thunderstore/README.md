@@ -39,3 +39,7 @@ Tested on Super Fantasy Kingdom **0.8.068** at 1920×1080 with a virtual gamepad
 Install **Worker Presets** from the Super Fantasy Kingdom community in your Thunderstore-compatible mod manager, then launch the game with that profile.
 
 For manual installation, install [BepInExPack](https://thunderstore.io/c/super-fantasy-kingdom/p/BepInEx/BepInExPack/) and [HideManagerGameObject Config](https://thunderstore.io/c/super-fantasy-kingdom/p/BepInEx/HideManagerGameObject_Config/). Copy `plugins/WorkerPresets.dll` from the ZIP to `BepInEx/plugins/GKJ-WorkerPresets/WorkerPresets.dll`.
+
+## Support
+
+[Support GKJ Games on Ko-fi](https://ko-fi.com/gkj_games)
