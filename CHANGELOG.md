@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+Clarify the mod’s description and compatibility for players.
+
 ## 0.1.3
 
 - Updated the package icon with the in-game worker portrait, staffing hammer, and two assignment slots.

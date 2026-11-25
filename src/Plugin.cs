@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace WorkerPresets
 {
-    [BepInPlugin("gkj.sfk.workerpresets", "Worker Presets", "0.1.3")]
+    [BepInPlugin("gkj.sfk.workerpresets", "Worker Presets", "0.1.4")]
     public sealed class Plugin : BaseUnityPlugin
     {
         private Harmony patches;
