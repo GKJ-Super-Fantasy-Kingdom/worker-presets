@@ -106,9 +106,15 @@ namespace WorkerPresets
             static void Finalizer((LayoutBook, string) __state) => (writing, writePath) = __state;
         }
 
-        [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.Save), typeof(string), typeof(string))]
+        [HarmonyPatch]
         private static class WriteJson
         {
+            // 0.8.070 lets callers choose whether to rotate the backup. Both choices
+            // write the same checkpoint payload, so patch only the writer present in this build.
+            static MethodBase TargetMethod() =>
+                AccessTools.Method(typeof(SaveManager), nameof(SaveManager.Save), new[] { typeof(string), typeof(string), typeof(bool) }) ??
+                AccessTools.Method(typeof(SaveManager), nameof(SaveManager.Save), new[] { typeof(string), typeof(string) });
+
             static void Prefix(string __0, ref string __1)
             {
                 if (writing == null || __0 != writePath || !Plugin.HasSavedLayouts(writing)) return;

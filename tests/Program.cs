@@ -32,6 +32,7 @@ internal static class Program
         var layout = book.Slots[0];
         layout.Name = "Stone";
         layout.Entries = sites.Values.Select(b => b.Capture()).ToList();
+        book.Slots[1].Name = "Night Shift";
         book.Slots[1].Entries = new List<Entry> { west.Capture(), lost.Capture() };
         east.Current = 0;
         west.Current = 4;
@@ -111,11 +112,50 @@ internal static class Program
         var scratch = Path.GetTempFileName();
         try
         {
+            LayoutBook RoundTrip()
+            {
+                write[1] = original;
+                InvokeHook("WriteJson", "Prefix", write);
+                File.WriteAllText(scratch, (string)write[1]);
+                return Restore(File.ReadAllText(scratch), run);
+            }
+
             File.WriteAllText(scratch, serialized);
             var loaded = Restore(File.ReadAllText(scratch), run);
             Check(loaded != book && loaded.Valid() && loaded.Slots[0].Name == "Stone" &&
+                loaded.Slots[1].Name == "Night Shift" &&
                 loaded.Slots[0].Entries.Count == 4 && loaded.Slots[1].Entries.Count == 2 &&
                 loaded.Slots[1].Entries.Last().Removed, "continue restores both named layouts and retired buildings");
+
+            int added = book.Add();
+            var third = book.Slots[added];
+            third.Name = "Harvest";
+            third.Entries = new List<Entry> { new Entry { Key = "Farm@1,2", Title = "Farm", Amount = 2 } };
+            book.Add();
+            book.Remove("Farm@1,2");
+            loaded = RoundTrip();
+            Check(loaded.Slots.Length == 4 && loaded.Slots[0].Name == "Stone" &&
+                loaded.Slots[1].Name == "Night Shift" && loaded.Slots[2].Name == "Harvest" &&
+                loaded.Slots[2].Entries.Single().Amount == 2 && loaded.Slots[2].Entries.Single().Removed &&
+                loaded.Slots[3].Name == "Layout 4" && loaded.Slots[3].Entries == null,
+                "continue restores extra layouts, their staffing and demolition records, and empty added slots");
+
+            book.RemoveAt(1);
+            loaded = RoundTrip();
+            Check(loaded.Slots.Select(slot => slot.Name).SequenceEqual(new[] { "Stone", "Harvest", "Layout 4" }) &&
+                loaded.Slots[1].Entries.Single().Amount == 2,
+                "removing a middle layout preserves the other presets and their order through Continue");
+
+            book.RemoveAt(2);
+            book.RemoveAt(0);
+            loaded = RoundTrip();
+            Check(loaded.Slots.Length == 1 && loaded.Slots[0].Name == "Harvest", "Continue restores a sole layout");
+
+            book.RemoveAt(0);
+            loaded = RoundTrip();
+            Check(loaded.Valid() && loaded.Slots.Length == 0,
+                "Continue preserves an intentionally empty layout list");
+            Check(loaded.Add() == 0 && loaded.Slots[0].Name == "Layout 1", "adding works after every layout is removed");
         }
         finally { File.Delete(scratch); }
         Check(Restore(serialized, Guid.NewGuid().ToString()).Slots.All(s => s.Entries == null), "different run starts empty");
@@ -126,9 +166,31 @@ internal static class Program
     public static void Main(string[] args)
     {
         if (args.Length != 1) throw new ArgumentException("Pass the path to a copied game checkpoint.");
+        var fresh = new LayoutBook();
+        Check(fresh.Slots.Select(s => s.Name).SequenceEqual(new[] { "Layout 1", "Layout 2" }) &&
+            !Plugin.HasSavedLayouts(fresh), "fresh slots have neutral names and need no mod save data");
+        fresh.Slots[0].Name = "Day Shift";
+        Check(Plugin.HasSavedLayouts(fresh), "a renamed empty slot is saved");
+        fresh = new LayoutBook();
+        Check(fresh.Add() == 2 && fresh.Slots[2].Name == "Layout 3" && Plugin.HasSavedLayouts(fresh),
+            "an added empty layout is retained across native saves");
+        fresh.Slots[2].Name = "layout 4";
+        Check(fresh.Add() == 3 && fresh.Slots[3].Name == "Layout 5" &&
+            fresh.NameInUse("Layout 4", 0) && !fresh.NameInUse("Layout 4", 2),
+            "added presets skip case-insensitive name collisions across all pages");
         Check(PresetPanel.PreviewRows(720) == 3 && PresetPanel.PreviewRows(720 / 1.5f) == 2 &&
             PresetPanel.PanelWidth(1920) == 520 && PresetPanel.PanelWidth(1920 / 1.5f) == 448 && PresetPanel.PanelWidth(400) == 352,
             "720p preview budgets at 1x and 1.5x scale and narrow panel width");
+        var removed = new Change { Saved = new Entry { Amount = 1 } };
+        var available = new Change { Saved = new Entry { Amount = 1 }, Building = new Workplace { Current = 1 }, Target = 1 };
+        Check(PresetPanel.UnavailableReason(Array.Empty<Change>()).Contains("no saved jobs") &&
+            PresetPanel.UnavailableReason(new[] { removed }).Contains("unavailable") &&
+            PresetPanel.UnavailableReason(new[] { available }).Contains("already matches") &&
+            PresetPanel.UnavailableReason(new[] { removed, available }).Contains("skipped"),
+            "disabled Apply explains empty, missing, matched, and mixed layouts");
+        available.Saved.Amount = 2;
+        Check(PresetPanel.UnavailableReason(new[] { available }).Contains("job limits"),
+            "disabled Apply explains a target already clamped by job limits");
         SaveContinue(args[0], Scenarios());
     }
 }

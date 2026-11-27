@@ -21,7 +21,39 @@ namespace WorkerPresets
 
     internal sealed class LayoutBook
     {
-        public Layout[] Slots = { new Layout { Name = "Day Shift" }, new Layout { Name = "Night Shift" } };
+        internal const string FirstDefaultName = "Layout 1";
+        internal const string SecondDefaultName = "Layout 2";
+        public Layout[] Slots = { new Layout { Name = FirstDefaultName }, new Layout { Name = SecondDefaultName } };
+
+        internal int Add()
+        {
+            int index = Slots.Length;
+            string name = NextLayoutName(index + 1);
+            Array.Resize(ref Slots, index + 1);
+            Slots[index] = new Layout { Name = name };
+            return index;
+        }
+
+        internal void RemoveAt(int index)
+        {
+            Slots = Slots.Where((slot, position) => position != index).ToArray();
+        }
+
+        internal bool NameInUse(string name, int except = -1)
+        {
+            for (int index = 0; index < Slots.Length; index++)
+                if (index != except && string.Equals(name, Slots[index].Name, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
+        }
+
+        internal string NextLayoutName(int number)
+        {
+            string name;
+            do { name = "Layout " + number++; }
+            while (NameInUse(name));
+            return name;
+        }
 
         internal void Remove(string key)
         {
@@ -31,7 +63,7 @@ namespace WorkerPresets
                         entry.Removed = true;
         }
 
-        internal bool Valid() => Slots?.Length == 2 && Slots.All(slot => slot != null &&
+        internal bool Valid() => Slots != null && Slots.All(slot => slot != null &&
             !string.IsNullOrWhiteSpace(slot.Name) && slot.Name.Length <= 20 &&
             (slot.Entries == null || slot.Entries.All(e => e != null && !string.IsNullOrEmpty(e.Key) &&
                 !string.IsNullOrEmpty(e.Title) && e.Amount >= 0) &&

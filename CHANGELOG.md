@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.5
+
+- Restore Worker Presets save and Continue support on game 0.8.070.
+- Add more staffing layouts from the picker and browse them two at a time.
+- Remove layouts with confirmation, including the last layout in a run.
+- Use Layout 1 and Layout 2 as the default names.
+- Remove the repeated shortcut row and use native Back and action button styles in preset screens.
+- Use the same red across layout cards, paging controls, and Back. Hover and focus show the native stepped white frame with a black inner edge.
+- Match the launcher and layout-editing buttons to the same focus behavior, and use native pressed and disabled art on action buttons.
+
+- Refresh the package icon and screenshots for Human and Undead.
+
 ## 0.1.4
 
 Clarify the mod’s description and compatibility for players.

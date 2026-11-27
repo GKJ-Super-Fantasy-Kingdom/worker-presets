@@ -10,14 +10,15 @@ using UnityEngine;
 
 namespace WorkerPresets
 {
-    [BepInPlugin("gkj.sfk.workerpresets", "Worker Presets", "0.1.4")]
+    [BepInPlugin("gkj.sfk.workerpresets", "Worker Presets", "0.1.5")]
     public sealed class Plugin : BaseUnityPlugin
     {
         private Harmony patches;
         internal static LayoutBook Book { get; private set; }
         internal static void Reset(LayoutBook saved) => Book = saved ?? new LayoutBook();
-        internal static bool HasSavedLayouts(LayoutBook book) => book.Slots.Any(slot => slot.Entries != null) ||
-            book.Slots[0].Name != "Day Shift" || book.Slots[1].Name != "Night Shift";
+        internal static bool HasSavedLayouts(LayoutBook book) => book.Slots.Length != 2 ||
+            book.Slots.Any(slot => slot.Entries != null) ||
+            book.Slots[0].Name != LayoutBook.FirstDefaultName || book.Slots[1].Name != LayoutBook.SecondDefaultName;
 
         private void Awake()
         {

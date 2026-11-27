@@ -28,6 +28,11 @@ internal class Probe
         var patched = harmony.GetPatchedMethods().ToArray();
         Verify(patched.Length == 10 && patched.Any(m => m.DeclaringType == typeof(UIBuildingOverlayElementWorker)),
             "all ten production Harmony targets installed in the game's Mono runtime");
+        var writer = patched.Single(m => m.DeclaringType == typeof(SaveManager) && m.Name == "Save");
+        var backupWriter = AccessTools.Method(typeof(SaveManager), "Save", new[] { typeof(string), typeof(string), typeof(bool) });
+        var expectedWriter = backupWriter ?? AccessTools.Method(typeof(SaveManager), "Save", new[] { typeof(string), typeof(string) });
+        Verify(writer == expectedWriter && Harmony.GetPatchInfo(writer).Prefixes.Count(p => p.owner == harmony.Id) == 1,
+            "exactly one mod prefix registered on " + writer);
         var pause = new HarmonyMethod(typeof(Probe), "Skip");
         harmony.Patch(AccessTools.Method(typeof(UIBuildingOverlayElementWorker), "SetWorkerAmount"),
             prefix: new HarmonyMethod(typeof(Probe), "Paint"));
